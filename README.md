@@ -16,7 +16,12 @@ Sobre una muestra de 6.000 correos (80% train / 20% test, split estratificado), 
 | F1-score (spam) | 0.99 |
 | F1-score (ham) | 0.98 |
 
-Ver el detalle completo (incluyendo la matriz de confusión) en [`notebooks/spam_detection.ipynb`](notebooks/spam_detection.ipynb).
+```
+              precision    recall  f1-score   support
+
+         ham       0.99      0.98      0.98       302
+        spam       0.99      1.00      0.99       898
+```
 
 ## Enfoque
 
@@ -32,20 +37,24 @@ El pipeline de procesamiento de cada correo es:
 
 ```
 spam-email-project/
-├── notebooks/
-│   └── spam_detection.ipynb   # Análisis, entrenamiento y evaluación del modelo
+├── pyproject.toml
+├── requirements.txt
 ├── src/
 │   └── spam_detector/
 │       ├── email_parser.py     # Parseo y limpieza de correos (clase EmailParser)
-│       └── dataset.py          # Carga del corpus TREC07p
-├── data/                        # Dataset (no versionado, ver más abajo)
-├── requirements.txt
-└── LICENSE
+│       ├── dataset.py          # Carga del corpus TREC07p
+│       └── classifier.py       # SpamClassifier: vectorizador + modelo
+├── scripts/
+│   ├── train.py                 # Entrena el modelo y lo guarda en models/
+│   └── predict.py                # Clasifica un correo usando el modelo entrenado
+├── models/
+│   └── spam_classifier.joblib    # Modelo ya entrenado (listo para usar)
+└── data/                          # Dataset (no versionado, ver más abajo)
 ```
 
 ## Dataset
 
-Por su tamaño (~1 GB), **el dataset no está incluido en este repositorio**. Para reproducir el proyecto:
+Por su tamaño (~1 GB), **el dataset no está incluido en este repositorio** (solo se necesita para reentrenar el modelo). Para reproducirlo:
 
 1. Descargalo desde Kaggle: [Emails for spam or ham classification (Trec 2007)](https://www.kaggle.com/datasets/bayes2003/emails-for-spam-or-ham-classification-trec-2007).
 2. Descomprimilo dentro de `data/`, de forma que quede la carpeta `data/trec07p/` con `full/index` y `data/` (los correos) en su interior.
@@ -56,44 +65,37 @@ Por su tamaño (~1 GB), **el dataset no está incluido en este repositorio**. Pa
 python3 -m venv venv
 source venv/bin/activate  # En Windows: venv\Scripts\activate
 
-pip install -r requirements.txt
-
+pip install -e .
 python -m nltk.downloader stopwords punkt punkt_tab
 ```
 
 ## Uso
 
+El repositorio incluye un modelo ya entrenado (`models/spam_classifier.joblib`), así que podés clasificar un correo sin necesidad de descargar el dataset:
+
 ```bash
-jupyter notebook notebooks/spam_detection.ipynb
+python scripts/predict.py ruta/a/un/correo.txt
+# -> spam  o  ham
 ```
 
-O usando los módulos directamente:
+El archivo debe contener un correo crudo en formato RFC822 (encabezados + cuerpo), igual a como se guardan los mensajes del corpus TREC07p.
 
-```python
-import sys
-sys.path.insert(0, "src")
+### Reentrenar el modelo
 
-from spam_detector import EmailParser, read_raw_emails
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.linear_model import LogisticRegression
+Si descargaste el dataset (ver sección anterior):
 
-emails, labels = read_raw_emails("data/trec07p/full/index", limit=6000)
-parser = EmailParser()
-processed = [parser.parse(e) for e in emails]
-
-vectorizer = CountVectorizer()
-X = vectorizer.fit_transform(processed)
-
-clf = LogisticRegression(max_iter=1000)
-clf.fit(X, labels)
+```bash
+python scripts/train.py --limit 6000
 ```
+
+Opciones disponibles: `--index` (ruta al índice del dataset), `--limit` (cantidad de correos a usar) y `--model-out` (dónde guardar el modelo resultante).
 
 ## Posibles mejoras
 
 - Probar `TfidfVectorizer` en lugar de `CountVectorizer`.
 - Comparar con otros algoritmos habituales en clasificación de texto (`MultinomialNB`, `SVM`).
 - Entrenar sobre el corpus completo (75.419 correos) en lugar de una muestra.
-- Serializar el modelo entrenado (`joblib`) para reutilizarlo sin reentrenar.
+- Agregar tests automatizados para `EmailParser` y `SpamClassifier`.
 
 ## Licencia
 

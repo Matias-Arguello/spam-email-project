@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=65.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spam-detector"
+version = "0.1.0"
+description = "Clasificador de correos spam/ham entrenado sobre el corpus TREC07p"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "joblib==1.5.3",
+    "nltk==3.9.2",
+    "numpy==2.0.2",
+    "pandas==2.3.3",
+    "scikit-learn==1.6.1",
+    "scipy==1.13.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
